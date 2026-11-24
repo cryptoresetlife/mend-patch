@@ -91,6 +91,16 @@ class Tree {
   get(p: string): string | null {
     return this.now.has(p) ? this.now.get(p)! : this.orig(p);
   }
+  /** Something is at `p`: a file as the edits left it, or a directory on disk that no file of the tree hides. */
+  occupied(p: string): boolean {
+    if (this.get(p) !== null) return true;
+    if (this.now.has(p)) return false;
+    try {
+      return statSync(p).isDirectory();
+    } catch {
+      return false;
+    }
+  }
 }
 
 interface Ctx {
@@ -112,7 +122,7 @@ function needFile(ctx: Ctx, p: string): string {
 }
 
 function needAbsent(ctx: Ctx, p: string): void {
-  if (ctx.tree.get(p) !== null) throw new EditFail('exists', p);
+  if (ctx.tree.occupied(p)) throw new EditFail('exists', p);
 }
 
 // ---------------------------------------------------------------- matching (section 5)
@@ -551,7 +561,7 @@ function parseV4A(lines: string[]): Edit[] {
       });
     } else if (l.startsWith(DEL)) {
       const path = stripSpaces(l.slice(DEL.length));
-      if (end > head + 1) throw new Stop(`error: parse ${head + 2}`);
+      for (let k = head + 1; k < end; k++) if (!isBlank(lines[k]!)) throw new Stop(`error: parse ${k + 1}`);
       edits.push((ctx) => {
         needSafe(path);
         needFile(ctx, path);

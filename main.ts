@@ -583,7 +583,7 @@ function parseV4A(lines: string[]): Edit[] {
           const a = stripSpaces(b.slice(2));
           open = { anchor: a === '' ? null : a, eof: false, body: [] };
           chunks.push(open);
-        } else if (b.trim() === '*** End of File') {
+        } else if (b.startsWith('*') && b.trimEnd() === '*** End of File') {
           if (open === null) {
             if (chunks.length > 0) throw new Stop(`error: parse ${k + 1}`);
             open = { anchor: null, eof: false, body: [] };
